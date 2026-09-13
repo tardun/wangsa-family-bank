@@ -1,0 +1,26 @@
+// Ganti URL ini dengan URL Web App GAS Anda
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxDlkn50b8YE3a-15frqfvuemgtG5lC6mwhGE4KR73s-J3tdIbvweNyCUJAA1MtlfrS/exec'; 
+
+// Fungsi Helper untuk memanggil GAS dari Vercel
+async function callGAS(functionName, ...args) {
+  try {
+    const response = await fetch(GAS_API_URL, {
+      method: 'POST',
+      // Redirect 'follow' SANGAT PENTING karena Google selalu me-redirect request POST
+      redirect: 'follow', 
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8', // Google memerlukan ini untuk menghindari preflight CORS
+      },
+      body: JSON.stringify({
+        function: functionName,
+        args: args
+      })
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Gagal menghubungi server:', error);
+    return { success: false, message: 'Koneksi error' };
+  }
+}
