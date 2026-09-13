@@ -1,26 +1,130 @@
-// Ganti URL ini dengan URL Web App GAS Anda
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxDlkn50b8YE3a-15frqfvuemgtG5lC6mwhGE4KR73s-J3tdIbvweNyCUJAA1MtlfrS/exec'; 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💰 Wangsa Family Bank</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
 
-// Fungsi Helper untuk memanggil GAS dari Vercel
-async function callGAS(functionName, ...args) {
-  try {
-    const response = await fetch(GAS_API_URL, {
-      method: 'POST',
-      // Redirect 'follow' SANGAT PENTING karena Google selalu me-redirect request POST
-      redirect: 'follow', 
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8', // Google memerlukan ini untuk menghindari preflight CORS
-      },
-      body: JSON.stringify({
-        function: functionName,
-        args: args
-      })
+  <!-- Halaman Login -->
+  <div id="loginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+      <h1 class="text-2xl font-bold text-center mb-6">💰 Wangsa Family Bank</h1>
+      
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Username</label>
+          <input type="text" id="loginUsername" required 
+            class="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Masukkan username">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold mb-1">Password</label>
+          <input type="password" id="loginPassword" required 
+            class="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Masukkan password">
+        </div>
+
+        <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 p-3 rounded-xl"></div>
+
+        <button type="submit" id="loginBtn" 
+          class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Content (akan ditampilkan setelah login) -->
+  <div id="mainContent" class="hidden max-w-5xl mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-6">Selamat Datang di Wangsa Family Bank</h1>
+    <div id="userInfo" class="mb-6"></div>
+    <!-- Konten lainnya akan ditambahkan di sini -->
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    // ===== KONFIGURASI =====
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxDlkn50b8YE3a-15frqfvuemgtG5lC6mwhGE4KR73s-J3tdlbvweNyCUJAA1Mtlfs/exec';
+
+    // ===== FUNGSI HELPER UNTUK PANGGIL GAS =====
+    async function callGAS(functionName, ...args) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            function: functionName,
+            args: args
+          })
+        });
+        
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('Gagal menghubungi server:', error);
+        return { success: false, message: 'Koneksi error' };
+      }
+    }
+
+    // ===== CHECK LOGIN STATUS =====
+    async function checkLoginStatus() {
+      const result = await callGAS('checkSession');
+      if (result.loggedIn) {
+        showMainApp(result.user);
+      } else {
+        showLoginPage();
+      }
+    }
+
+    function showLoginPage() {
+      document.getElementById('loginPage').classList.remove('hidden');
+      document.getElementById('mainContent').classList.add('hidden');
+    }
+
+    function showMainApp(user) {
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+      document.getElementById('userInfo').innerHTML = `
+        <p class="text-lg">Halo, <strong>${user.namaLengkap}</strong>!</p>
+        <p class="text-slate-500">Role: ${user.role}</p>
+      `;
+    }
+
+    // ===== HANDLE LOGIN FORM =====
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const loginError = document.getElementById('loginError');
+      
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = 'Loading...';
+      loginError.classList.add('hidden');
+      
+      const result = await callGAS('doLogin', username, password);
+      
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = 'Login';
+      
+      if (result.success) {
+        showMainApp(result.user);
+      } else {
+        loginError.textContent = '❌ ' + result.message;
+        loginError.classList.remove('hidden');
+      }
     });
-    
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error('Gagal menghubungi server:', error);
-    return { success: false, message: 'Koneksi error' };
-  }
-}
+
+    // ===== INIT =====
+    checkLoginStatus();
+  </script>
+</body>
+</html>
